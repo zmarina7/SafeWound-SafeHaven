@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SafeWound & SafeHaven Simulation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: #f8fafc; overflow-x: hidden; }
+        .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        
+        /* Bracelet Styling */
+        .bracelet-band {
+            background: linear-gradient(145deg, #1e293b, #0f172a);
+            box-shadow: 10px 10px 20px #080d18, -5px -5px 15px #1e293b;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        
+        .sos-gem {
+            background: radial-gradient(circle at 30% 30%, #ef4444, #7f1d1d);
+            box-shadow: 0 0 15px rgba(239, 68, 68, 0.4), inset -2px -2px 6px rgba(0,0,0,0.6);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+        }
+        
+        .sos-gem:hover { transform: scale(1.05); filter: brightness(1.2); }
+        .sos-gem:active { transform: scale(0.95); box-shadow: 0 0 5px rgba(239, 68, 68, 0.8); }
+        
+        .active-alert .sos-gem {
+            animation: gem-pulse 1s infinite alternate;
+            background: radial-gradient(circle at 30% 30%, #ff0000, #b91c1c);
+        }
+
+        @keyframes gem-pulse {
+            from { box-shadow: 0 0 15px rgba(239, 68, 68, 0.6); }
+            to { box-shadow: 0 0 30px rgba(239, 68, 68, 1); }
+        }
+
+        .scan-line {
+            height: 2px;
+            background: #22d3ee;
+            position: absolute;
+            width: 100%;
+            top: 0;
+            animation: scan 2s linear infinite;
+            box-shadow: 0 0 15px #22d3ee;
+        }
+        @keyframes scan {
+            0% { top: 0%; }
+            100% { top: 100%; }
+        }
+        .frequency-bar { transition: height 0.1s ease; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center p-4">
+
+    <header class="w-full max-w-4xl flex justify-between items-center mb-8 py-4">
+        <div class="flex items-center space-x-2">
+            <div class="bg-cyan-500 p-2 rounded-lg">
+                <i class="fas fa-shield-alt text-white text-xl"></i>
+            </div>
+            <h1 class="text-xl font-bold tracking-tight">SafeWound <span class="text-cyan-400">&</span> SafeHaven</h1>
+        </div>
+        <nav class="flex space-x-1 glass p-1 rounded-full">
+            <button onclick="switchTab('bracelet')" id="tab-bracelet" class="px-4 py-2 rounded-full text-sm font-medium bg-cyan-600 text-white transition-all">Bracelet Hardware</button>
+            <button onclick="switchTab('haven')" id="tab-haven" class="px-4 py-2 rounded-full text-sm font-medium hover:bg-slate-700 transition-all">SafeHaven App</button>
+        </nav>
+    </header>
+
+    <main class="w-full max-w-lg">
+        
+        <!-- Bracelet Simulation Section -->
+        <section id="bracelet-view" class="space-y-6">
+            <div class="glass rounded-3xl p-8 flex flex-col items-center text-center">
+                <h2 class="text-2xl font-bold mb-1">SafeWound Bracelet</h2>
+                <p class="text-slate-400 text-xs mb-8 uppercase tracking-widest">Discrete Offline Protection</p>
+                
+                <!-- Visual Bracelet Representation -->
+                <div id="bracelet-container" class="relative w-full h-64 flex items-center justify-center mb-6">
+                    <!-- Band -->
+                    <div class="bracelet-band w-72 h-16 rounded-full absolute rotate-[-5deg] border-t border-slate-500/20 opacity-80"></div>
+                    <div class="bracelet-band w-72 h-16 rounded-full absolute rotate-[5deg] border-b border-slate-500/20"></div>
+                    
+                    <!-- Main Hardware Hub (The "Watch" part) -->
+                    <div class="relative z-10 w-32 h-32 bg-slate-900 rounded-3xl flex items-center justify-center border border-slate-700 shadow-2xl overflow-hidden">
+                        <div class="absolute inset-0 bg-gradient-to-tr from-transparent to-white/5"></div>
+                        
+                        <!-- The SOS Gem -->
+                        <div id="sos-trigger" onclick="triggerEmergency()" class="sos-gem w-20 h-20 rounded-full flex flex-col items-center justify-center border-2 border-white/10 z-20">
+                            <span class="text-white font-bold text-lg">SOS</span>
+                        </div>
+
+                        <!-- Mic/Sensor indicator dots -->
+                        <div class="absolute bottom-2 left-1/2 -translate-x-1/2 flex space-x-1">
+                            <div class="w-1 h-1 rounded-full bg-slate-600"></div>
+                            <div class="w-1 h-1 rounded-full bg-slate-600"></div>
+                            <div class="w-1 h-1 rounded-full bg-slate-600"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="status-display" class="w-full space-y-3 hidden">
+                    <div class="flex items-center justify-between text-xs font-mono text-cyan-400 bg-cyan-900/20 p-3 rounded-xl border border-cyan-500/30">
+                        <span>LORA TRANSMITTING EVIDENCE...</span>
+                        <i class="fas fa-satellite-dish animate-pulse"></i>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="glass rounded-xl p-3 relative overflow-hidden h-24 flex flex-col items-center justify-center border-cyan-500/20 border">
+                            <div class="scan-line"></div>
+                            <i class="fas fa-fingerprint text-3xl text-cyan-400 mb-1"></i>
+                            <span class="text-[10px] text-slate-400 uppercase">Fingerprint Locked</span>
+                        </div>
+                        <div class="glass rounded-xl p-3 relative h-24 flex flex-col items-center justify-center border-red-500/20 border">
+                            <i class="fas fa-microphone text-3xl text-red-400 animate-pulse mb-1"></i>
+                            <span class="text-[10px] text-slate-400 uppercase">Audio Capture ON</span>
+                        </div>
+                    </div>
+                    <div class="bg-slate-800/50 p-4 rounded-xl text-left border border-slate-700">
+                        <p class="text-[10px] text-slate-400 mb-1">Fayida ID Verification</p>
+                        <p class="text-sm font-semibold text-white">USER: ET-9942-XXXX-XXXX</p>
+                        <p class="text-[10px] text-emerald-400 mt-1"><i class="fas fa-check-circle mr-1"></i> Location Broadcasted via Mesh</p>
+                    </div>
+                </div>
+                
+                <p id="idle-text" class="text-xs text-slate-500 max-w-xs mx-auto">Tapping the Ruby Gem triggers an encrypted emergency signal and begins forensic audio recording.</p>
+            </div>
+        </section>
+
+        <!-- App Simulation Section -->
+        <section id="haven-view" class="hidden space-y-6">
+            <div class="glass rounded-[2rem] p-6 h-[600px] flex flex-col relative overflow-hidden">
+                <div class="flex justify-between items-center mb-6">
+                    <div>
+                        <h3 class="text-lg font-bold">Hello, Sister</h3>
+                        <p class="text-xs text-slate-400">Ehitalem is here for you.</p>
+                    </div>
+                    <div class="w-10 h-10 bg-gradient-to-br from-cyan-400 to-blue-600 rounded-full flex items-center justify-center shadow-lg">
+                        <i class="fas fa-heart text-white text-sm"></i>
+                    </div>
+                </div>
+
+                <div id="haven-menu" class="grid grid-cols-2 gap-4 mb-6">
+                    <button onclick="startFeature('ai')" class="bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 p-4 rounded-2xl flex flex-col items-center transition-all">
+                        <i class="fas fa-comment-dots text-blue-400 mb-2"></i>
+                        <span class="text-xs font-semibold">Ehitalem AI</span>
+                    </button>
+                    <button onclick="startFeature('sound')" class="bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 p-4 rounded-2xl flex flex-col items-center transition-all">
+                        <i class="fas fa-wave-square text-purple-400 mb-2"></i>
+                        <span class="text-xs font-semibold">Sound Therapy</span>
+                    </button>
+                    <button onclick="startFeature('mood')" class="bg-pink-600/20 hover:bg-pink-600/30 border border-pink-500/30 p-4 rounded-2xl flex flex-col items-center transition-all">
+                        <i class="fas fa-smile text-pink-400 mb-2"></i>
+                        <span class="text-xs font-semibold">Mood Tracking</span>
+                    </button>
+                    <button onclick="startFeature('journal')" class="bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/30 p-4 rounded-2xl flex flex-col items-center transition-all">
+                        <i class="fas fa-lock text-emerald-400 mb-2"></i>
+                        <span class="text-xs font-semibold">Safe Journal</span>
+                    </button>
+                </div>
+
+                <div id="feature-display" class="flex-grow flex flex-col">
+                    <div class="bg-slate-800/40 rounded-2xl p-4 flex-grow flex items-center justify-center text-center">
+                        <p class="text-sm text-slate-400">Select a tool to interact with your digital safe space.</p>
+                    </div>
+                </div>
+
+                <div class="mt-4 flex justify-around text-slate-500 text-xs py-2 border-t border-slate-800">
+                    <div class="text-cyan-400 flex flex-col items-center"><i class="fas fa-home mb-1"></i>Home</div>
+                    <div class="flex flex-col items-center"><i class="fas fa-shield-virus mb-1"></i>Safety</div>
+                    <div class="flex flex-col items-center"><i class="fas fa-users mb-1"></i>Circle</div>
+                    <div class="flex flex-col items-center"><i class="fas fa-cog mb-1"></i>Settings</div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="fixed bottom-8 left-1/2 -translate-x-1/2 glass px-6 py-3 rounded-full text-sm font-medium border-cyan-500/50 hidden transform transition-all duration-300 translate-y-20 z-50">
+        <span id="toast-message"></span>
+    </div>
+
+    <script>
+        function switchTab(tab) {
+            const bracelet = document.getElementById('bracelet-view');
+            const haven = document.getElementById('haven-view');
+            const tabB = document.getElementById('tab-bracelet');
+            const tabH = document.getElementById('tab-haven');
+
+            if (tab === 'bracelet') {
+                bracelet.classList.remove('hidden');
+                haven.classList.add('hidden');
+                tabB.className = "px-4 py-2 rounded-full text-sm font-medium bg-cyan-600 text-white transition-all";
+                tabH.className = "px-4 py-2 rounded-full text-sm font-medium hover:bg-slate-700 transition-all";
+            } else {
+                bracelet.classList.add('hidden');
+                haven.classList.remove('hidden');
+                tabH.className = "px-4 py-2 rounded-full text-sm font-medium bg-cyan-600 text-white transition-all";
+                tabB.className = "px-4 py-2 rounded-full text-sm font-medium hover:bg-slate-700 transition-all";
+            }
+        }
+
+        function triggerEmergency() {
+            const status = document.getElementById('status-display');
+            const idle = document.getElementById('idle-text');
+            const container = document.getElementById('bracelet-container');
+            const btn = document.getElementById('sos-trigger');
+
+            status.classList.remove('hidden');
+            idle.classList.add('hidden');
+            container.classList.add('active-alert');
+            
+            btn.innerHTML = `<span class="text-xs font-bold text-white">ALERT</span>`;
+            
+            showToast("🚨 Bracelet Activated: Sending location and recording evidence.");
+        }
+
+        function startFeature(type) {
+            const display = document.getElementById('feature-display');
+            
+            if (type === 'ai') {
+                display.innerHTML = `
+                    <div class="flex flex-col h-full">
+                        <div class="flex-grow space-y-4 overflow-y-auto mb-4 p-2">
+                            <div class="bg-slate-700/50 p-3 rounded-2xl rounded-tl-none self-start max-w-[85%]">
+                                <p class="text-[10px] font-bold text-cyan-400 mb-1">Ehitalem AI</p>
+                                <p class="text-sm">እህቴ እንዴት ነሽ? ዛሬ ምን ላግዝሽ እችላለሁ? (How are you, sister? How can I assist you today?)</p>
+                            </div>
+                        </div>
+                        <div class="flex space-x-2">
+                            <input type="text" placeholder="Message Ehitalem..." class="flex-grow bg-slate-800 border border-slate-700 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-cyan-500">
+                            <button class="bg-cyan-600 p-2 rounded-xl text-white"><i class="fas fa-paper-plane"></i></button>
+                        </div>
+                    </div>
+                `;
+            } else if (type === 'sound') {
+                display.innerHTML = `
+                    <div class="flex flex-col items-center justify-center h-full space-y-6">
+                        <p class="text-xs font-medium text-purple-300 uppercase tracking-widest">Theta Waves - Calm</p>
+                        <div class="flex items-end space-x-1 h-24">
+                            ${Array(12).fill(0).map(() => `<div class="bg-purple-500/60 w-3 rounded-full frequency-bar" style="height: ${Math.random() * 100}%"></div>`).join('')}
+                        </div>
+                        <button onclick="toggleSound(this)" class="bg-purple-600 hover:bg-purple-700 text-white px-8 py-3 rounded-full text-xs font-bold shadow-lg transition-all">
+                            <i class="fas fa-play mr-2"></i> Start Therapy
+                        </button>
+                    </div>
+                `;
+                animateFrequencies();
+            } else {
+                display.innerHTML = `
+                    <div class="flex flex-col items-center justify-center h-full text-center p-6">
+                        <i class="fas fa-feather-pointed text-4xl text-slate-700 mb-4"></i>
+                        <p class="text-sm text-slate-400">The <strong>${type}</strong> module is currently in development for the SafeHaven ecosystem.</p>
+                    </div>
+                `;
+            }
+        }
+
+        function animateFrequencies() {
+            const bars = document.querySelectorAll('.frequency-bar');
+            if (bars.length === 0) return;
+            bars.forEach(bar => {
+                bar.style.height = `${Math.random() * 80 + 20}%`;
+            });
+            setTimeout(animateFrequencies, 150);
+        }
+
+        function toggleSound(btn) {
+            const icon = btn.querySelector('i');
+            if (icon.classList.contains('fa-play')) {
+                icon.classList.replace('fa-play', 'fa-pause');
+                btn.innerText = "Pause Session";
+                btn.prepend(icon);
+                showToast("Healing frequencies playing...");
+            } else {
+                icon.classList.replace('fa-pause', 'fa-play');
+                btn.innerText = "Start Therapy";
+                btn.prepend(icon);
+            }
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            const message = document.getElementById('toast-message');
+            message.innerText = msg;
+            toast.classList.remove('hidden');
+            setTimeout(() => toast.classList.remove('translate-y-20'), 10);
+            setTimeout(() => {
+                toast.classList.add('translate-y-20');
+                setTimeout(() => toast.classList.add('hidden'), 300);
+            }, 4000);
+        }
+    </script>
+</body>
+</html>
